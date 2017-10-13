@@ -225,11 +225,18 @@
 				this.startWalk()
 			},
 			// 检查点是否合法，用来防止移出边界或与其它方块重合
-			checkPoints: function (points, oldPoints, controlDirection) {
+			checkPoints: function (points, oldPoints, controlDirection, targetDirection) {
 			    // 这里可以优化：如果是旋转，扩大检查范围，看旋转经过路径是否有障碍物
+//			    if (controlDirection == this.controlDirection.up) {
+//					switch (targetDirection) {
+//
+//					}
+//				}
 				for (var i in points) {
-					if (//points[i].row<0||
-					     points[i].row>this.rowNumber-1
+					if (points[i].row<0) {
+						continue
+					}
+					if (points[i].row>this.rowNumber-1
 						|| points[i].column<0
 						|| points[i].column>this.columnNumber-1
 						|| (this.gridList[points[i].row][points[i].column].status==this.gridStatus.full && !containsPoint(oldPoints, points[i]))) {
@@ -244,7 +251,7 @@
 				if (direction != this.controlDirection.down) {
 					newPoints = this.formatPoint(newPoints)
 				}
-				if (this.checkPoints(newPoints, this.currentBlock.points, direction)) {
+				if (this.checkPoints(newPoints, this.currentBlock.points, direction, this.currentBlock.direction)) {
 					this.currentBlock.offsetX = this.currentBlock.newOffsetX
 					this.currentBlock.offsetY = this.currentBlock.newOffsetY
 					this.currentBlock.points = newPoints
@@ -272,7 +279,7 @@
 			blockCanDrop: function (block) {
 			    block.newOffsetY = block.offsetY+1
 				var newPoints = this.getBlockPoints(block)
-				var canDrop = this.checkPoints(newPoints, block.points, this.controlDirection.down)
+				var canDrop = this.checkPoints(newPoints, block.points, this.controlDirection.down, this.currentBlock.direction)
 				block.newOffsetY = block.offsetY
 				return canDrop
 			},
@@ -334,19 +341,19 @@
 							case this.blockDirection.down:
 								points = [
 									{
-										row: 0 + block.newOffsetY,
+										row: -2 + block.newOffsetY,
 										column: this.columnNumber/2-1 + block.newOffsetX
 									},
 									{
-										row: 0 + block.newOffsetY,
+										row: -2 + block.newOffsetY,
 										column: this.columnNumber/2 + block.newOffsetX
 									},
 									{
-										row: 1 + block.newOffsetY,
+										row: -1 + block.newOffsetY,
 										column: this.columnNumber/2 + block.newOffsetX
 									},
 									{
-										row: 1 + block.newOffsetY,
+										row: -1 + block.newOffsetY,
 										column: this.columnNumber/2+1 + block.newOffsetX
 									}
 								]
@@ -355,19 +362,19 @@
 							case this.blockDirection.right:
 								points = [
 									{
-										row: 0 + block.newOffsetY,
+										row: -3 + block.newOffsetY,
 										column: this.columnNumber/2 + block.newOffsetX
 									},
 									{
-										row: 1 + block.newOffsetY,
+										row: -2 + block.newOffsetY,
 										column: this.columnNumber/2 + block.newOffsetX
 									},
 									{
-										row: 1 + block.newOffsetY,
+										row: -2 + block.newOffsetY,
 										column: this.columnNumber/2-1 + block.newOffsetX
 									},
 									{
-										row: 2 + block.newOffsetY,
+										row: -1 + block.newOffsetY,
 										column: this.columnNumber/2-1 + block.newOffsetX
 									}
 								]
@@ -381,19 +388,19 @@
 							case this.blockDirection.down:
 								points = [
 									{
-										row: 0 + block.newOffsetY,
+										row: -2 + block.newOffsetY,
 										column: this.columnNumber / 2 + 1 + block.newOffsetX
 									},
 									{
-										row: 0 + block.newOffsetY,
+										row: -2 + block.newOffsetY,
 										column: this.columnNumber / 2 + block.newOffsetX
 									},
 									{
-										row: 1 + block.newOffsetY,
+										row: -1 + block.newOffsetY,
 										column: this.columnNumber / 2 + block.newOffsetX
 									},
 									{
-										row: 1 + block.newOffsetY,
+										row: -1 + block.newOffsetY,
 										column: this.columnNumber / 2 - 1 + block.newOffsetX
 									}
 								]
@@ -402,19 +409,19 @@
 							case this.blockDirection.right:
 								points = [
 									{
-										row: 0 + block.newOffsetY,
+										row: -3 + block.newOffsetY,
 										column: this.columnNumber / 2 - 1 + block.newOffsetX
 									},
 									{
-										row: 1 + block.newOffsetY,
+										row: -2 + block.newOffsetY,
 										column: this.columnNumber / 2 - 1 + block.newOffsetX
 									},
 									{
-										row: 1 + block.newOffsetY,
+										row: -2 + block.newOffsetY,
 										column: this.columnNumber / 2 + block.newOffsetX
 									},
 									{
-										row: 2 + block.newOffsetY,
+										row: -1 + block.newOffsetY,
 										column: this.columnNumber / 2 + block.newOffsetX
 									}
 								]
@@ -425,19 +432,19 @@
 					case this.blockType.O: {
 						points = [
 							{
-								row: 0 + block.newOffsetY,
+								row: -2 + block.newOffsetY,
 								column: this.columnNumber/2-1 + block.newOffsetX
 							},
 							{
-								row: 0 + block.newOffsetY,
+								row: -2 + block.newOffsetY,
 								column: this.columnNumber/2 + block.newOffsetX
 							},
 							{
-								row: 1 + block.newOffsetY,
+								row: -1 + block.newOffsetY,
 								column: this.columnNumber/2-1 + block.newOffsetX
 							},
 							{
-								row: 1 + block.newOffsetY,
+								row: -1 + block.newOffsetY,
 								column: this.columnNumber/2 + block.newOffsetX
 							}
 						]
@@ -448,19 +455,19 @@
 							case this.blockDirection.normal:
 								points = [
 									{
-										row: 0 + block.newOffsetY,
+										row: -3 + block.newOffsetY,
 										column: this.columnNumber/2-1 + block.newOffsetX
 									},
 									{
-										row: 1 + block.newOffsetY,
+										row: -2 + block.newOffsetY,
 										column: this.columnNumber/2-1 + block.newOffsetX
 									},
 									{
-										row: 2 + block.newOffsetY,
+										row: -1 + block.newOffsetY,
 										column: this.columnNumber/2-1 + block.newOffsetX
 									},
 									{
-										row: 2 + block.newOffsetY,
+										row: -1 + block.newOffsetY,
 										column: this.columnNumber/2 + block.newOffsetX
 									}
 								]
@@ -468,19 +475,19 @@
 							case this.blockDirection.down:
 								points = [
 									{
-										row: 0 + block.newOffsetY,
+										row: -3 + block.newOffsetY,
 										column: this.columnNumber/2-1 + block.newOffsetX
 									},
 									{
-										row: 0 + block.newOffsetY,
+										row: -3 + block.newOffsetY,
 										column: this.columnNumber/2 + block.newOffsetX
 									},
 									{
-										row: 1 + block.newOffsetY,
+										row: -2 + block.newOffsetY,
 										column: this.columnNumber/2 + block.newOffsetX
 									},
 									{
-										row: 2 + block.newOffsetY,
+										row: -1 + block.newOffsetY,
 										column: this.columnNumber/2 + block.newOffsetX
 									}
 								]
@@ -488,19 +495,19 @@
 							case this.blockDirection.left:
 								points = [
 									{
-										row: 0 + block.newOffsetY,
+										row: -2 + block.newOffsetY,
 										column: this.columnNumber/2+1 + block.newOffsetX
 									},
 									{
-										row: 1 + block.newOffsetY,
+										row: -1 + block.newOffsetY,
 										column: this.columnNumber/2+1 + block.newOffsetX
 									},
 									{
-										row: 1 + block.newOffsetY,
+										row: -1 + block.newOffsetY,
 										column: this.columnNumber/2 + block.newOffsetX
 									},
 									{
-										row: 1 + block.newOffsetY,
+										row: -1 + block.newOffsetY,
 										column: this.columnNumber/2-1 + block.newOffsetX
 									}
 								]
@@ -508,19 +515,19 @@
 							case this.blockDirection.right:
 								points = [
 									{
-										row: 0 + block.newOffsetY,
+										row: -2 + block.newOffsetY,
 										column: this.columnNumber/2-1 + block.newOffsetX
 									},
 									{
-										row: 0 + block.newOffsetY,
+										row: -2 + block.newOffsetY,
 										column: this.columnNumber/2 + block.newOffsetX
 									},
 									{
-										row: 0 + block.newOffsetY,
+										row: -2 + block.newOffsetY,
 										column: this.columnNumber/2+1 + block.newOffsetX
 									},
 									{
-										row: 1 + block.newOffsetY,
+										row: -1 + block.newOffsetY,
 										column: this.columnNumber/2-1 + block.newOffsetX
 									}
 								]
@@ -534,19 +541,19 @@
 							case this.blockDirection.down:
 								points = [
 									{
-										row: 0 + block.newOffsetY,
+										row: -4 + block.newOffsetY,
 										column: this.columnNumber/2 + block.newOffsetX
 									},
 									{
-										row: 1 + block.newOffsetY,
+										row: -3 + block.newOffsetY,
 										column: this.columnNumber/2 + block.newOffsetX
 									},
 									{
-										row: 2 + block.newOffsetY,
+										row: -2 + block.newOffsetY,
 										column: this.columnNumber/2 + block.newOffsetX
 									},
 									{
-										row: 3 + block.newOffsetY,
+										row: -1 + block.newOffsetY,
 										column: this.columnNumber/2 + block.newOffsetX
 									}
 								]
@@ -555,19 +562,19 @@
 							case this.blockDirection.right:
 								points = [
 									{
-										row: 0 + block.newOffsetY,
+										row: -2 + block.newOffsetY,
 										column: this.columnNumber/2-2 + block.newOffsetX
 									},
 									{
-										row: 0 + block.newOffsetY,
+										row: -2 + block.newOffsetY,
 										column: this.columnNumber/2-1 + block.newOffsetX
 									},
 									{
-										row: 0 + block.newOffsetY,
+										row: -2 + block.newOffsetY,
 										column: this.columnNumber/2 + block.newOffsetX
 									},
 									{
-										row: 0 + block.newOffsetY,
+										row: -2 + block.newOffsetY,
 										column: this.columnNumber/2+1 + block.newOffsetX
 									}
 								]
@@ -580,19 +587,19 @@
 							case this.blockDirection.normal:
 								points = [
 									{
-										row: 0 + block.newOffsetY,
+										row: -3 + block.newOffsetY,
 										column: this.columnNumber/2+1 + block.newOffsetX
 									},
 									{
-										row: 1 + block.newOffsetY,
+										row: -2 + block.newOffsetY,
 										column: this.columnNumber/2+1 + block.newOffsetX
 									},
 									{
-										row: 2 + block.newOffsetY,
+										row: -1 + block.newOffsetY,
 										column: this.columnNumber/2+1 + block.newOffsetX
 									},
 									{
-										row: 2 + block.newOffsetY,
+										row: -1 + block.newOffsetY,
 										column: this.columnNumber/2 + block.newOffsetX
 									}
 								]
@@ -600,19 +607,19 @@
 							case this.blockDirection.down:
 								points = [
 									{
-										row: 0 + block.newOffsetY,
+										row: -3 + block.newOffsetY,
 										column: this.columnNumber/2 + block.newOffsetX
 									},
 									{
-										row: 0 + block.newOffsetY,
+										row: -3 + block.newOffsetY,
 										column: this.columnNumber/2-1 + block.newOffsetX
 									},
 									{
-										row: 1 + block.newOffsetY,
+										row: -2 + block.newOffsetY,
 										column: this.columnNumber/2-1 + block.newOffsetX
 									},
 									{
-										row: 2 + block.newOffsetY,
+										row: -1 + block.newOffsetY,
 										column: this.columnNumber/2-1 + block.newOffsetX
 									}
 								]
@@ -620,19 +627,19 @@
 							case this.blockDirection.left:
 								points = [
 									{
-										row: 0 + block.newOffsetY,
+										row: -2 + block.newOffsetY,
 										column: this.columnNumber/2-1 + block.newOffsetX
 									},
 									{
-										row: 0 + block.newOffsetY,
+										row: -2 + block.newOffsetY,
 										column: this.columnNumber/2 + block.newOffsetX
 									},
 									{
-										row: 0 + block.newOffsetY,
+										row: -2 + block.newOffsetY,
 										column: this.columnNumber/2+1 + block.newOffsetX
 									},
 									{
-										row: 1 + block.newOffsetY,
+										row: -1 + block.newOffsetY,
 										column: this.columnNumber/2+1 + block.newOffsetX
 									}
 								]
@@ -640,19 +647,19 @@
 							case this.blockDirection.right:
 								points = [
 									{
-										row: 0 + block.newOffsetY,
+										row: -2 + block.newOffsetY,
 										column: this.columnNumber/2-1 + block.newOffsetX
 									},
 									{
-										row: 1 + block.newOffsetY,
+										row: -1 + block.newOffsetY,
 										column: this.columnNumber/2-1 + block.newOffsetX
 									},
 									{
-										row: 1 + block.newOffsetY,
+										row: -1 + block.newOffsetY,
 										column: this.columnNumber/2 + block.newOffsetX
 									},
 									{
-										row: 1 + block.newOffsetY,
+										row: -1 + block.newOffsetY,
 										column: this.columnNumber/2+1 + block.newOffsetX
 									}
 								]
@@ -665,19 +672,19 @@
 							case this.blockDirection.normal:
 								points = [
 									{
-										row: 0 + block.newOffsetY,
+										row: -2 + block.newOffsetY,
 										column: this.columnNumber/2-1 + block.newOffsetX
 									},
 									{
-										row: 0 + block.newOffsetY,
+										row: -2 + block.newOffsetY,
 										column: this.columnNumber/2 + block.newOffsetX
 									},
 									{
-										row: 0 + block.newOffsetY,
+										row: -2 + block.newOffsetY,
 										column: this.columnNumber/2+1 + block.newOffsetX
 									},
 									{
-										row: 1 + block.newOffsetY,
+										row: -1 + block.newOffsetY,
 										column: this.columnNumber/2 + block.newOffsetX
 									}
 								]
@@ -685,19 +692,19 @@
 							case this.blockDirection.down:
 								points = [
 									{
-										row: 0 + block.newOffsetY,
+										row: -2 + block.newOffsetY,
 										column: this.columnNumber/2 + block.newOffsetX
 									},
 									{
-										row: 1 + block.newOffsetY,
+										row: -1 + block.newOffsetY,
 										column: this.columnNumber/2-1 + block.newOffsetX
 									},
 									{
-										row: 1 + block.newOffsetY,
+										row: -1 + block.newOffsetY,
 										column: this.columnNumber/2 + block.newOffsetX
 									},
 									{
-										row: 1 + block.newOffsetY,
+										row: -1 + block.newOffsetY,
 										column: this.columnNumber/2+1 + block.newOffsetX
 									}
 								]
@@ -705,19 +712,19 @@
 							case this.blockDirection.left:
 								points = [
 									{
-										row: 0 + block.newOffsetY,
+										row: -3 + block.newOffsetY,
 										column: this.columnNumber/2-1 + block.newOffsetX
 									},
 									{
-										row: 1 + block.newOffsetY,
+										row: -2 + block.newOffsetY,
 										column: this.columnNumber/2-1 + block.newOffsetX
 									},
 									{
-										row: 1 + block.newOffsetY,
+										row: -2 + block.newOffsetY,
 										column: this.columnNumber/2 + block.newOffsetX
 									},
 									{
-										row: 2 + block.newOffsetY,
+										row: -1 + block.newOffsetY,
 										column: this.columnNumber/2-1 + block.newOffsetX
 									}
 								]
@@ -725,19 +732,19 @@
 							case this.blockDirection.right:
 								points = [
 									{
-										row: 0 + block.newOffsetY,
+										row: -3 + block.newOffsetY,
 										column: this.columnNumber/2+1 + block.newOffsetX
 									},
 									{
-										row: 1 + block.newOffsetY,
+										row: -2 + block.newOffsetY,
 										column: this.columnNumber/2+1 + block.newOffsetX
 									},
 									{
-										row: 1 + block.newOffsetY,
+										row: -2 + block.newOffsetY,
 										column: this.columnNumber/2 + block.newOffsetX
 									},
 									{
-										row: 2 + block.newOffsetY,
+										row: -2 + block.newOffsetY,
 										column: this.columnNumber/2+1 + block.newOffsetX
 									}
 								]
@@ -753,12 +760,8 @@
 			formatPoint: function (points) {
 				var offsetRow = 0
 				var offsetColumn = 0
-				var pText = ''
 				for (var i in points) {
-					pText += '['+points[i].row+','+points[i].column+']、'
-					if (points[i].row < 0 && 0-points[i].row > offsetRow) {
-						offsetRow = 0-points[i].row
-					} else if (points[i].row > this.rowNumber-1 && this.rowNumber-1-points[i].row < offsetRow) {
+					if (points[i].row > this.rowNumber-1 && this.rowNumber-1-points[i].row < offsetRow) {
 						offsetRow = this.rowNumber-1-points[i].row
 					}
 					if (points[i].column < 0 && 0-points[i].column > offsetColumn) {
