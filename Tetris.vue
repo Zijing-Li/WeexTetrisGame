@@ -21,14 +21,34 @@
 			<text class="reset-button" v-if="gameStatus!=0" @click="resetGame">{{gameStatus==1?'再玩一次':'重来'}}</text>
 			<div class="control-content" v-if="gameStatus==0">
 				<div class="control-row flex-center">
-					<image class="control-image" resize="contain" :src="directionUp" @click="turn(controlDirection.up)"></image>
+					<image class="control-image"
+						   resize="contain"
+						   :src="directionUp"
+						   @touchend="touchEnd"
+						   @longpress="longPress(controlDirection.up)"
+						   @click="turn(controlDirection.up)"></image>
 				</div>
 				<div class="control-row flex-space-between">
-					<image class="control-image" resize="contain" :src="directionLeft" @click="turn(controlDirection.left)"></image>
-					<image class="control-image" resize="contain" :src="directionRight" @click="turn(controlDirection.right)"></image>
+					<image class="control-image"
+						   resize="contain"
+						   :src="directionLeft"
+						   @touchend="touchEnd"
+						   @longpress="longPress(controlDirection.left)"
+						   @click="turn(controlDirection.left)"></image>
+					<image class="control-image"
+						   resize="contain"
+						   :src="directionRight"
+						   @touchend="touchEnd"
+						   @longpress="longPress(controlDirection.right)"
+						   @click="turn(controlDirection.right)"></image>
 				</div>
 				<div class="control-row flex-center">
-					<image class="control-image" resize="contain" :src="directionDown" @click="turn(controlDirection.down)"></image>
+					<image class="control-image"
+						   resize="contain"
+						   :src="directionDown"
+						   @touchend="touchEnd"
+						   @longpress="longPress(controlDirection.down)"
+						   @click="turn(controlDirection.down)"></image>
 				</div>
 			</div>
 		</div>
@@ -38,6 +58,7 @@
 <script>
 	const modal = weex.requireModule('modal')
 	var timer = null
+	var longPressTimer = null
 	export default {
 		computed: {
 			gridSize: function () {
@@ -118,6 +139,19 @@
 				}
 				this.updateControl(direction)
 			},
+			touchEnd: function () {
+				clearInterval(longPressTimer)
+				longPressTimer = null
+			},
+			longPress: function (direction) {
+			    if (this.speeds[this.speedLevel] <= 100) {
+			        return
+				}
+			    var self = this
+				longPressTimer = setInterval(function () {
+					self.turn(direction)
+				}, 100)
+			},
 			gridImage: function (grid) {
 				switch (grid.status) {
 					case this.gridStatus.empty:
@@ -190,30 +224,41 @@
 				this.removingCount = 0
 				this.startWalk()
 			},
-			// 检查点改变后是否合法，用来控制不移除边界或与其它方块重合
-			checkPoints: function (points, oldPoints) {
+			// 检查点是否合法，用来防止移出边界或与其它方块重合
+			checkPoints: function (points, oldPoints, controlDirection) {
+			    // 这里可以优化：如果是旋转，扩大检查范围，看旋转经过路径是否有障碍物
 				for (var i in points) {
-				    if (points[i].row<0
-						 || points[i].row>this.rowNumber-1
-						 || points[i].column<0
-						 || points[i].column>this.columnNumber-1
-						 || (this.gridList[points[i].row][points[i].column].status==this.gridStatus.full && !containsPoint(oldPoints, points[i]))) {
+					if (//points[i].row<0||
+					     points[i].row>this.rowNumber-1
+						|| points[i].column<0
+						|| points[i].column>this.columnNumber-1
+						|| (this.gridList[points[i].row][points[i].column].status==this.gridStatus.full && !containsPoint(oldPoints, points[i]))) {
 						return false
 					}
 				}
 				return true
 			},
+			// 更新控制
 			updateControl: function (direction) {
 			    var newPoints = this.getBlockPoints(this.currentBlock)
-				if (this.checkPoints(newPoints, this.currentBlock.points)) {
-					this.currentBlock.points = newPoints
+				if (direction != this.controlDirection.down) {
+					newPoints = this.formatPoint(newPoints)
+				}
+				if (this.checkPoints(newPoints, this.currentBlock.points, direction)) {
 					this.currentBlock.offsetX = this.currentBlock.newOffsetX
 					this.currentBlock.offsetY = this.currentBlock.newOffsetY
+					this.currentBlock.points = newPoints
 					this.updateGrid(this.currentBlock)
 				} else {
 					this.currentBlock.newOffsetX = this.currentBlock.offsetX
 					this.currentBlock.newOffsetY = this.currentBlock.offsetY
-					if (direction == this.controlDirection.down) {
+					if (direction == this.controlDirection.up) {
+						this.currentBlock.direction--
+						if (this.currentBlock.direction<0) {
+							this.currentBlock.direction = this.blockDirection.right
+						}
+					}
+					if (!this.blockCanDrop(this.currentBlock)) {
 						this.currentBlock = this.nextBlock
 						this.nextBlock = this.randomBlock(this.nextBlock.type)
 						this.stopWalk()
@@ -223,6 +268,15 @@
 				}
 				this.turning = false
 			},
+			// 方块是否还能下落
+			blockCanDrop: function (block) {
+			    block.newOffsetY = block.offsetY+1
+				var newPoints = this.getBlockPoints(block)
+				var canDrop = this.checkPoints(newPoints, block.points, this.controlDirection.down)
+				block.newOffsetY = block.offsetY
+				return canDrop
+			},
+			// 自动下落
 			drop: function () {
 				this.currentBlock.newOffsetY++
 				this.updateControl(this.controlDirection.down)
@@ -243,7 +297,10 @@
 			    var grids = []
 				for (var i in block.points) {
 			        var point = block.points[i]
-					if (point.row >= this.rowNumber || point.column >= this.columnNumber) {
+					if (point.row>=this.rowNumber
+						|| point.row<0
+						|| point.column>=this.columnNumber
+						|| point.column<0) {
 			            continue
 					}
 					grids.push(this.gridList[point.row][point.column])
@@ -269,12 +326,13 @@
 			},
 			// 获取方块的点
 			getBlockPoints: function (block) {
+			    var points = []
 				switch (block.type) {
 					case this.blockType.Z: {
 					    switch (block.direction) {
 							case this.blockDirection.normal:
 							case this.blockDirection.down:
-								return [
+								points = [
 									{
 										row: 0 + block.newOffsetY,
 										column: this.columnNumber/2-1 + block.newOffsetX
@@ -292,9 +350,10 @@
 										column: this.columnNumber/2+1 + block.newOffsetX
 									}
 								]
+								break
 							case this.blockDirection.left:
 							case this.blockDirection.right:
-								return [
+								points = [
 									{
 										row: 0 + block.newOffsetY,
 										column: this.columnNumber/2 + block.newOffsetX
@@ -312,13 +371,15 @@
 										column: this.columnNumber/2-1 + block.newOffsetX
 									}
 								]
+								break
 						}
 					}
+						break
 					case this.blockType.S: {
 						switch (block.direction) {
 							case this.blockDirection.normal:
 							case this.blockDirection.down:
-								return [
+								points = [
 									{
 										row: 0 + block.newOffsetY,
 										column: this.columnNumber / 2 + 1 + block.newOffsetX
@@ -336,9 +397,10 @@
 										column: this.columnNumber / 2 - 1 + block.newOffsetX
 									}
 								]
+								break
 							case this.blockDirection.left:
 							case this.blockDirection.right:
-								return [
+								points = [
 									{
 										row: 0 + block.newOffsetY,
 										column: this.columnNumber / 2 - 1 + block.newOffsetX
@@ -356,10 +418,12 @@
 										column: this.columnNumber / 2 + block.newOffsetX
 									}
 								]
+								break
 						}
 					}
+						break
 					case this.blockType.O: {
-						return [
+						points = [
 							{
 								row: 0 + block.newOffsetY,
 								column: this.columnNumber/2-1 + block.newOffsetX
@@ -378,10 +442,11 @@
 							}
 						]
 					}
+						break
 					case this.blockType.L: {
 						switch (block.direction) {
 							case this.blockDirection.normal:
-								return [
+								points = [
 									{
 										row: 0 + block.newOffsetY,
 										column: this.columnNumber/2-1 + block.newOffsetX
@@ -399,8 +464,9 @@
 										column: this.columnNumber/2 + block.newOffsetX
 									}
 								]
+								break
 							case this.blockDirection.down:
-								return [
+								points = [
 									{
 										row: 0 + block.newOffsetY,
 										column: this.columnNumber/2-1 + block.newOffsetX
@@ -418,8 +484,9 @@
 										column: this.columnNumber/2 + block.newOffsetX
 									}
 								]
+								break
 							case this.blockDirection.left:
-								return [
+								points = [
 									{
 										row: 0 + block.newOffsetY,
 										column: this.columnNumber/2+1 + block.newOffsetX
@@ -437,8 +504,9 @@
 										column: this.columnNumber/2-1 + block.newOffsetX
 									}
 								]
+								break
 							case this.blockDirection.right:
-								return [
+								points = [
 									{
 										row: 0 + block.newOffsetY,
 										column: this.columnNumber/2-1 + block.newOffsetX
@@ -456,13 +524,15 @@
 										column: this.columnNumber/2-1 + block.newOffsetX
 									}
 								]
+								break
 						}
 					}
+						break
 					case this.blockType.I: {
 						switch (block.direction) {
 							case this.blockDirection.normal:
 							case this.blockDirection.down:
-								return [
+								points = [
 									{
 										row: 0 + block.newOffsetY,
 										column: this.columnNumber/2 + block.newOffsetX
@@ -480,9 +550,10 @@
 										column: this.columnNumber/2 + block.newOffsetX
 									}
 								]
+								break
 							case this.blockDirection.left:
 							case this.blockDirection.right:
-								return [
+								points = [
 									{
 										row: 0 + block.newOffsetY,
 										column: this.columnNumber/2-2 + block.newOffsetX
@@ -500,12 +571,14 @@
 										column: this.columnNumber/2+1 + block.newOffsetX
 									}
 								]
+								break
 						}
 					}
+						break
 					case this.blockType.J: {
 						switch (block.direction) {
 							case this.blockDirection.normal:
-								return [
+								points = [
 									{
 										row: 0 + block.newOffsetY,
 										column: this.columnNumber/2+1 + block.newOffsetX
@@ -523,8 +596,9 @@
 										column: this.columnNumber/2 + block.newOffsetX
 									}
 								]
+								break
 							case this.blockDirection.down:
-								return [
+								points = [
 									{
 										row: 0 + block.newOffsetY,
 										column: this.columnNumber/2 + block.newOffsetX
@@ -542,8 +616,9 @@
 										column: this.columnNumber/2-1 + block.newOffsetX
 									}
 								]
+								break
 							case this.blockDirection.left:
-								return [
+								points = [
 									{
 										row: 0 + block.newOffsetY,
 										column: this.columnNumber/2-1 + block.newOffsetX
@@ -561,8 +636,9 @@
 										column: this.columnNumber/2+1 + block.newOffsetX
 									}
 								]
+								break
 							case this.blockDirection.right:
-								return [
+								points = [
 									{
 										row: 0 + block.newOffsetY,
 										column: this.columnNumber/2-1 + block.newOffsetX
@@ -580,13 +656,14 @@
 										column: this.columnNumber/2+1 + block.newOffsetX
 									}
 								]
+								break
 						}
 					}
-
+						break
 					case this.blockType.T: {
 						switch (block.direction) {
 							case this.blockDirection.normal:
-								return [
+								points = [
 									{
 										row: 0 + block.newOffsetY,
 										column: this.columnNumber/2-1 + block.newOffsetX
@@ -604,8 +681,9 @@
 										column: this.columnNumber/2 + block.newOffsetX
 									}
 								]
+								break
 							case this.blockDirection.down:
-								return [
+								points = [
 									{
 										row: 0 + block.newOffsetY,
 										column: this.columnNumber/2 + block.newOffsetX
@@ -623,8 +701,9 @@
 										column: this.columnNumber/2+1 + block.newOffsetX
 									}
 								]
+								break
 							case this.blockDirection.left:
-								return [
+								points = [
 									{
 										row: 0 + block.newOffsetY,
 										column: this.columnNumber/2-1 + block.newOffsetX
@@ -642,8 +721,9 @@
 										column: this.columnNumber/2-1 + block.newOffsetX
 									}
 								]
+								break
 							case this.blockDirection.right:
-								return [
+								points = [
 									{
 										row: 0 + block.newOffsetY,
 										column: this.columnNumber/2+1 + block.newOffsetX
@@ -661,12 +741,42 @@
 										column: this.columnNumber/2+1 + block.newOffsetX
 									}
 								]
+								break
 						}
 
 					}
-					default:
-						return []
+						break
 				}
+				return points
+			},
+			// 矫正方块
+			formatPoint: function (points) {
+				var offsetRow = 0
+				var offsetColumn = 0
+				var pText = ''
+				for (var i in points) {
+					pText += '['+points[i].row+','+points[i].column+']、'
+					if (points[i].row < 0 && 0-points[i].row > offsetRow) {
+						offsetRow = 0-points[i].row
+					} else if (points[i].row > this.rowNumber-1 && this.rowNumber-1-points[i].row < offsetRow) {
+						offsetRow = this.rowNumber-1-points[i].row
+					}
+					if (points[i].column < 0 && 0-points[i].column > offsetColumn) {
+						offsetColumn = 0-points[i].column
+					} else if (points[i].column > this.columnNumber-1 && this.columnNumber-1-points[i].column < offsetColumn) {
+						offsetColumn = this.columnNumber-1-points[i].column
+					}
+				}
+				if (offsetRow!=0 || offsetColumn!=0) {
+					for (var i in points) {
+						points[i].row = points[i].row+offsetRow
+						points[i].column = points[i].column+offsetColumn
+					}
+
+					this.currentBlock.newOffsetX += offsetColumn
+					this.currentBlock.newOffsetY += offsetRow
+				}
+				return points
 			},
 			// 随机方块，随机旋转
 			randomBlock: function (excludeType) {
@@ -675,6 +785,7 @@
 				if (type == excludeType) {
 				    return this.randomBlock()
 				}
+				type = this.blockType.I
 				var directionKeys = Object.keys(this.blockDirection)
 				var block = {
 					type: type,
@@ -728,14 +839,6 @@
 		beforeDestroy: function () {
 			this.stopWalk()
 		}
-	}
-	function contains(arr, obj) {
-		for (var i in arr) {
-			if (arr[i] === obj) {
-				return true
-			}
-		}
-		return false
 	}
 	function containsPoint(points, point) {
 		for (var i in points) {
