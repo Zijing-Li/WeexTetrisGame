@@ -165,11 +165,13 @@
 			failed: function () {
 				this.gameStatus = 2
 				this.stopWalk()
+				this.touchEnd()
 				toast('你输了！', 3)
 			},
 			success: function () {
 				this.gameStatus = 1
 				this.stopWalk()
+				this.touchEnd()
 				toast('你赢了！', 3)
 			},
 			// 消除行
