@@ -3,17 +3,31 @@
 		<div class="header">
 			<text>{{score}}</text>
 		</div>
-		<div class="game-body"
-			 :style="{height:gridSize*rowNumber, width:bodyWidth}"
+		<div class="body" :style="{width: 750, height:gridSize*rowNumber}">
+			<div class="next-preview" :style="{width:750-bodyWidth, height:750-bodyWidth}">
+				<div class="game-row" v-for="(row, rowIndex) in previewGridList">
+					<div class="grid-grid"
+						 :style="{width:previewGridSize, height:previewGridSize}"
+						 v-for="(grid, columnIndex) in row">
+						<image class="grid-image"
+							   :style="{opacity:grid.status!=gridStatus.empty?0.05:0.01}"
+							   resize="contain"
+							   :src="fullGridImage"></image>
+					</div>
+				</div>
+			</div>
+			<div class="game-body"
+				 :style="{height:gridSize*rowNumber, width:bodyWidth}"
 			>
-			<div class="game-row" v-for="(row, rowIndex) in gridList">
-				<div class="game-grid"
-					 :style="{width:gridSize, height:gridSize}"
-					 v-for="(grid, columnIndex) in row">
-					<image class="grid-image"
-						   :style="{opacity:grid.status!=gridStatus.empty?1:0.1}"
-						   resize="contain"
-						   :src="fullGridImage"></image>
+				<div class="game-row" v-for="(row, rowIndex) in gridList">
+					<div class="game-grid"
+						 :style="{width:gridSize, height:gridSize}"
+						 v-for="(grid, columnIndex) in row">
+						<image class="grid-image"
+							   :style="{opacity:grid.status!=gridStatus.empty?1:0.1}"
+							   resize="contain"
+							   :src="fullGridImage"></image>
+					</div>
 				</div>
 			</div>
 		</div>
@@ -61,17 +75,19 @@
 	var longPressTimer = null
 	export default {
 		computed: {
+		    previewGridSize: function () {
+				return (750-this.bodyWidth)/this.previewColumnNumber
+			},
 			gridSize: function () {
 				return this.bodyWidth/this.columnNumber
 			},
 			bodyWidth: function () {
-				return 600;
+				return 650;
 			}
 		},
 		data: {
 			gameStatus: 0, // 0进行中 1赢 2输
 			gridList: [],
-			snakeGridList: [],
 			blockType: {
 			    I: 0,
 				J: 1,
@@ -92,7 +108,10 @@
 			score: 0, // 得分
 			nextBlock: null,
 			rowNumber: 20,
-			columnNumber: 16,
+			columnNumber: 18,
+			previewGridList:[],
+			previewRowNumber:4,
+			previewColumnNumber: 4,
 			gridStatus: {
 				empty: 0,
 				full: 1
@@ -270,6 +289,7 @@
 					if (!this.blockCanDrop(this.currentBlock)) {
 						this.currentBlock = this.nextBlock
 						this.nextBlock = this.randomBlock(this.nextBlock.type)
+						this.updatePreviewGrid()
 						this.stopWalk()
 						this.checkRemove()
 						return
@@ -331,6 +351,34 @@
 				if (newGrids.length > 0) {
 				    var firstGrid = newGrids[0]
 					this.gridList[firstGrid.row].splice(firstGrid.column, 1, firstGrid)
+				}
+			},
+			// 更新预览
+			updatePreviewGrid: function () {
+				var points = this.getBlockPoints(this.nextBlock)
+				var offsetRow = 0
+				var offsetColumn = 0
+				for (var i in points) {
+					if (points[i].row < 0 && 0-points[i].row > offsetRow) {
+						offsetRow = 0-points[i].row
+					} else if (points[i].row > this.previewRowNumber-1 && this.previewRowNumber-1-points[i].row < offsetRow) {
+						offsetRow = this.previewRowNumber-1-points[i].row
+					}
+					if (points[i].column < 0 && 0-points[i].column > offsetColumn) {
+						offsetColumn = 0-points[i].column
+					} else if (points[i].column > this.previewColumnNumber-1 && this.previewColumnNumber-1-points[i].column < offsetColumn) {
+						offsetColumn = this.previewColumnNumber-1-points[i].column
+					}
+				}
+				for (var i=0; i<this.previewRowNumber; i++) {
+					for (var j=0; j<this.previewColumnNumber; j++) {
+						this.previewGridList[i][j].status = this.gridStatus.empty
+					}
+				}
+				for (var i in points) {
+					points[i].row = points[i].row+offsetRow
+					points[i].column = points[i].column+offsetColumn
+					this.previewGridList[points[i].row][points[i].column].status = this.gridStatus.full
 				}
 			},
 			// 获取方块的点
@@ -790,7 +838,6 @@
 				if (type == excludeType) {
 				    return this.randomBlock()
 				}
-				type = this.blockType.I
 				var directionKeys = Object.keys(this.blockDirection)
 				var block = {
 					type: type,
@@ -811,6 +858,7 @@
 				this.speedLevel = 0
 				this.removingCount = 0
 				this.score = 0
+				// 游戏区
 				for (var i=0; i<this.rowNumber; i++) {
 					var row
 					if (i<this.gridList.length) {
@@ -833,8 +881,32 @@
 						grid.status = this.gridStatus.empty
 					}
 				}
+				// 预览区
+				for (var i=0; i<this.previewRowNumber; i++) {
+					var row
+					if (i<this.previewGridList.length) {
+						row = this.previewGridList[i]
+						this.previewGridList.splice(i, 1, row)
+					} else  {
+						row = []
+						this.previewGridList.push(row)
+					}
+					for (var j=0; j<this.previewColumnNumber; j++) {
+						var grid
+						if (j<row.length) {
+							grid = row[j]
+						} else {
+							grid = {}
+							row.push(grid)
+						}
+						grid.row = i
+						grid.column = j
+						grid.status = this.gridStatus.empty
+					}
+				}
 				this.currentBlock = this.randomBlock()
 				this.nextBlock = this.randomBlock(this.currentBlock.type)
+				this.updatePreviewGrid()
 				this.startWalk()
 			}
 		},
@@ -870,11 +942,18 @@
 	.header {
 		height: 50px;
 	}
+	.body {
+		flex-direction: row;
+		background-color: oldlace;
+	}
 	.footer {
 		flex: 1;
 		flex-direction: row;
 		justify-content: center;
 		align-items: center;
+	}
+	.next-preview {
+		flex-direction: column;
 	}
 	.game-body {
 		flex-direction: column;
