@@ -794,7 +794,7 @@
 										column: this.columnNumber/2 + block.newOffsetX
 									},
 									{
-										row: -2 + block.newOffsetY,
+										row: -1 + block.newOffsetY,
 										column: this.columnNumber/2+1 + block.newOffsetX
 									}
 								]
